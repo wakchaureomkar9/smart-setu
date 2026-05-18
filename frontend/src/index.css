@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-800 antialiased font-sans;
+    scroll-behavior: smooth;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+@layer components {
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary-800 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm;
+  }
+  
+  .btn-accent {
+    @apply inline-flex items-center justify-center bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-accent-700 active:scale-95 transition-all duration-200 shadow-sm text-sm;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center border-2 border-primary text-primary px-4 py-2 rounded-lg font-semibold hover:bg-primary hover:text-white active:scale-95 transition-all duration-200 text-sm;
+  }
+
+  .btn-outline-accent {
+    @apply inline-flex items-center justify-center border-2 border-accent text-accent px-4 py-2 rounded-lg font-semibold hover:bg-accent hover:text-white active:scale-95 transition-all duration-200 text-sm;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center text-gray-600 px-3 py-2 rounded-lg font-medium hover:bg-gray-100 active:scale-95 transition-all duration-200 text-sm;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 active:scale-95 transition-all duration-200 text-sm;
+  }
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6;
+  }
+
+  .card-hover {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:border-primary-200 transition-all duration-200;
+  }
+
+  /* ── Form ── */
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none transition-all duration-200 bg-white text-gray-800 placeholder-gray-400 text-sm;
+  }
+  
+  .label-text {
+    @apply block text-sm font-semibold text-gray-700 mb-1.5;
+  }
+
+  /* ── Status Badges ── */
+  .badge-pending {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800;
+  }
+  .badge-in-progress {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800;
+  }
+  .badge-approved {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800;
+  }
+  .badge-rejected {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800;
+  }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    @apply bg-gray-200 rounded-lg animate-pulse;
+  }
+
+  /* ── Section Header ── */
+  .section-header {
+    @apply flex items-center justify-between mb-6;
+  }
+  .section-title {
+    @apply text-xl font-bold text-gray-900;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    @apply border-t border-gray-100 my-6;
+  }
+
+  /* ── Modal backdrop ── */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm;
+  }
+  .modal-panel {
+    @apply bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative duration-200;
+  }
+}
+
+/* ── Custom Animations ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease both;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
