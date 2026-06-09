@@ -15,9 +15,9 @@ async function seedAdmin() {
     database: process.env.DB_NAME,
   });
 
-  const adminEmail = 'wakchaureomkar189@gmail.com';
-  const adminPassword = 'admin123';
-  const adminName = 'Admin';
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME;
 
   const [rows] = await db.query('SELECT id FROM users WHERE email = ?', [adminEmail]);
 

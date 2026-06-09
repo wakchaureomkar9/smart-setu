@@ -5,15 +5,33 @@ const db     = require('../config/db');
 const MAX_FILE_SIZE  = 10 * 1024 * 1024;        // 10 MB per file
 const MAX_USER_QUOTA = 100 * 1024 * 1024;        // 100 MB per user
 
+const fs = require('fs');
+
+if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads');
+}
+if (!fs.existsSync('uploads/results')) {
+    fs.mkdirSync('uploads/results');
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+        if (req.originalUrl && req.originalUrl.includes('/result')) {
+            cb(null, 'uploads/results/');
+        } else {
+            cb(null, 'uploads/');
+        }
     },
     filename: (req, file, cb) => {
-    // Sanitize extension and strictly limit it
-    const ext = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
-    const unique = `${req.user.id}_${Date.now()}${ext}`;
-    cb(null, unique);
+        // Sanitize extension and strictly limit it
+        let ext = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
+        if (!ext && file.mimetype === 'application/pdf') ext = '.pdf';
+        
+        if (req.originalUrl && req.originalUrl.includes('/result')) {
+            cb(null, `result_${req.params.id}_${Date.now()}${ext}`);
+        } else {
+            cb(null, `${req.user.id}_${Date.now()}${ext}`);
+        }
     }
 });
 

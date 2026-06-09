@@ -5,7 +5,6 @@ const sendEmail = require('../utils/sendEmail');
 const {
     applicationSubmittedEmail,
     applicationInProgressEmail,
-    resultReadyEmail,
     applicationRejectedEmail
 } = require('../utils/emailTemplates');
 
@@ -251,7 +250,7 @@ const uploadResult = async (req, res) => {
     }
 
     const app       = rows[0];
-    const resultUrl = `/uploads/${req.file.filename}`;
+    const resultUrl = `/uploads/results/${req.file.filename}`;
 
     await db.query(
         `UPDATE applications
@@ -260,12 +259,7 @@ const uploadResult = async (req, res) => {
         [resultUrl, req.user.id, req.params.id]
     );
 
-    // notify citizen
-    sendEmail(
-        app.citizen_email,
-        'Your Document is Ready - Smart Setu',
-        resultReadyEmail(app.citizen_name, app.scheme_title, app.id)
-    ).catch(err => console.error('Email failed:', err));
+    // Email notification removed for result delivery
 
     return res.status(200).json({
         message: 'Result uploaded and application approved',

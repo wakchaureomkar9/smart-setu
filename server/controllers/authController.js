@@ -193,32 +193,23 @@ const getCitizenDashboardStats = asyncHandler(async (req, res) => {
 
 // ── ADMIN DASHBOARD STATS ───────────────────────────────
 const getAdminDashboardStats = asyncHandler(async (req, res) => {
-  const [appRows] = await db.query('SELECT status FROM applications');
-  const [userRows] = await db.query("SELECT COUNT(*) AS total FROM users WHERE role = 'citizen'");
-  const [schemeRows] = await db.query('SELECT COUNT(*) AS total FROM schemes WHERE is_active = true');
+  const [userRes] = await db.query("SELECT COUNT(*) AS totalUsers FROM users");
+  const [appRes] = await db.query("SELECT COUNT(*) AS totalApplications FROM applications");
+  const [pendingRes] = await db.query("SELECT COUNT(*) AS pendingApplications FROM applications WHERE status = 'pending'");
+  const [approvedRes] = await db.query("SELECT COUNT(*) AS approvedApplications FROM applications WHERE status = 'approved'");
+  const [rejectedRes] = await db.query("SELECT COUNT(*) AS rejectedApplications FROM applications WHERE status = 'rejected'");
+  const [inProgressRes] = await db.query("SELECT COUNT(*) AS inProgressApplications FROM applications WHERE status = 'in_progress'");
+  const [schemeRes] = await db.query("SELECT COUNT(*) AS activeSchemes FROM schemes");
 
-  const [recentApps] = await db.query(
-    `SELECT a.id, a.status, a.applied_at,
-            u.name AS citizen_name, u.email AS citizen_email,
-            s.title AS scheme_title
-     FROM applications a
-     JOIN users u ON a.user_id = u.id
-     JOIN schemes s ON a.scheme_id = s.id
-     ORDER BY a.applied_at DESC
-     LIMIT 10`
-  );
-
-  const stats = {
-    totalApplications: appRows.length,
-    pending: appRows.filter(a => a.status === 'pending').length,
-    in_progress: appRows.filter(a => a.status === 'in_progress').length,
-    approved: appRows.filter(a => a.status === 'approved').length,
-    rejected: appRows.filter(a => a.status === 'rejected').length,
-    totalCitizens: userRows[0].total,
-    activeSchemes: schemeRows[0].total,
-  };
-
-  return res.status(200).json({ stats, recentApplications: recentApps });
+  return res.status(200).json({
+    totalUsers: Number(userRes[0].totalUsers) || 0,
+    totalApplications: Number(appRes[0].totalApplications) || 0,
+    pendingApplications: Number(pendingRes[0].pendingApplications) || 0,
+    approvedApplications: Number(approvedRes[0].approvedApplications) || 0,
+    rejectedApplications: Number(rejectedRes[0].rejectedApplications) || 0,
+    inProgressApplications: Number(inProgressRes[0].inProgressApplications) || 0,
+    activeSchemes: Number(schemeRes[0].activeSchemes) || 0
+  });
 });
 
 // ── LIST ALL USERS (ADMIN) ──────────────────────────────

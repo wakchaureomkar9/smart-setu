@@ -45,23 +45,27 @@ const AdminDashboard = () => {
       // Try new stats endpoint first
       try {
         const statsRes = await api.get('/auth/admin/stats');
-        setStats(statsRes.data.stats);
-      } catch {}
+        setStats(statsRes.data);
+      } catch (err) {
+        console.error("Stats error", err);
+      }
       
       const res = await api.get('/applications/admin/all');
       const apps = res.data;
       setApplications(apps);
-      if (!stats) {
-        setStats({
+      
+      setStats(prevStats => {
+        if (prevStats) return prevStats;
+        return {
           totalApplications: apps.length,
-          pending: apps.filter(a => a.status === 'pending').length,
-          in_progress: apps.filter(a => a.status === 'in_progress').length,
-          approved: apps.filter(a => a.status === 'approved').length,
-          rejected: apps.filter(a => a.status === 'rejected').length,
-          totalCitizens: null,
-          activeSchemes: null,
-        });
-      }
+          pendingApplications: apps.filter(a => a.status === 'pending').length,
+          inProgressApplications: apps.filter(a => a.status === 'in_progress').length,
+          approvedApplications: apps.filter(a => a.status === 'approved').length,
+          rejectedApplications: apps.filter(a => a.status === 'rejected').length,
+          totalUsers: 0,
+          activeSchemes: 0,
+        };
+      });
     } catch {
       toast.error('Failed to load applications');
     } finally {
@@ -147,10 +151,10 @@ const AdminDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Total Applications" value={stats?.totalApplications} icon={FileText} bgClass="bg-primary" />
-        <StatCard label="Pending" value={stats?.pending} icon={Clock} bgClass="bg-amber-500" />
-        <StatCard label="Approved" value={stats?.approved} icon={CheckCircle} bgClass="bg-emerald-500" />
-        <StatCard label="Rejected" value={stats?.rejected} icon={XCircle} bgClass="bg-red-500" />
+        <StatCard label="Total Applications" value={stats?.totalApplications ?? 0} icon={FileText} bgClass="bg-primary" />
+        <StatCard label="Pending" value={stats?.pendingApplications ?? 0} icon={Clock} bgClass="bg-amber-500" />
+        <StatCard label="Approved" value={stats?.approvedApplications ?? 0} icon={CheckCircle} bgClass="bg-emerald-500" />
+        <StatCard label="Rejected" value={stats?.rejectedApplications ?? 0} icon={XCircle} bgClass="bg-red-500" />
       </div>
 
       {/* Secondary Stats */}
@@ -160,7 +164,7 @@ const AdminDashboard = () => {
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-gray-900">{stats?.in_progress ?? '--'}</div>
+            <div className="text-xl font-extrabold text-gray-900">{stats?.inProgressApplications ?? 0}</div>
             <div className="text-xs text-gray-500 font-medium">In Progress</div>
           </div>
         </div>
@@ -169,8 +173,8 @@ const AdminDashboard = () => {
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-gray-900">{stats?.totalCitizens ?? '--'}</div>
-            <div className="text-xs text-gray-500 font-medium">Citizens</div>
+            <div className="text-xl font-extrabold text-gray-900">{stats?.totalUsers ?? 0}</div>
+            <div className="text-xs text-gray-500 font-medium">Total Users</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
@@ -178,7 +182,7 @@ const AdminDashboard = () => {
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-gray-900">{stats?.activeSchemes ?? '--'}</div>
+            <div className="text-xl font-extrabold text-gray-900">{stats?.activeSchemes ?? 0}</div>
             <div className="text-xs text-gray-500 font-medium">Active Schemes</div>
           </div>
         </div>

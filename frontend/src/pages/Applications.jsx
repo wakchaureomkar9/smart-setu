@@ -49,10 +49,16 @@ const Applications = () => {
     const toastId = toast.loading('Preparing download...');
     try {
       const response = await api.get(`/applications/${appId}/download`, { responseType: 'blob' });
+      
+      const mimeType = response.data.type;
+      let ext = '.pdf';
+      if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') ext = '.jpg';
+      else if (mimeType === 'image/png') ext = '.png';
+      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Certificate_${appId}.pdf`);
+      link.setAttribute('download', `Certificate_${appId}${ext}`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

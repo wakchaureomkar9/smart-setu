@@ -20,6 +20,7 @@ import ProfileSettings from './pages/ProfileSettings';
 import AdminDashboard from './pages/AdminDashboard';
 import ManageSchemes from './pages/ManageSchemes';
 import ManageUsers from './pages/ManageUsers';
+import AdminReports from './pages/AdminReports';
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
               <Route path="admin" element={<AdminDashboard />} />
               <Route path="admin/schemes" element={<ManageSchemes />} />
               <Route path="admin/users" element={<ManageUsers />} />
+              <Route path="admin/reports" element={<AdminReports />} />
             </Route>
           </Route>
         </Routes>
