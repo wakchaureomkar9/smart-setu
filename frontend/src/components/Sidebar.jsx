@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, FileText, FileBadge, Vault, User, LogOut,
   Shield, ChevronLeft, ChevronRight, Menu, X, Settings,
-  BookOpen, Users, Home
+  BookOpen, Users, Home, PieChart
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -36,6 +36,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { name: 'Applications', path: '/admin', icon: FileBadge },
     { name: 'Manage Schemes', path: '/admin/schemes', icon: BookOpen },
     { name: 'Manage Users', path: '/admin/users', icon: Users },
+    { name: 'Reports', path: '/admin/reports', icon: PieChart },
   ];
 
   const navLinks = user?.role === 'admin' ? adminLinks : citizenLinks;

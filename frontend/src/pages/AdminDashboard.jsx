@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Users, FileText, CheckCircle, Clock, XCircle, Upload,
   Edit, Search, Filter, X, ChevronDown, LayoutDashboard,
-  TrendingUp, Activity, RefreshCw
+  TrendingUp, Activity, RefreshCw, Eye, Download, Image, File
 } from 'lucide-react';
 
 const statusConfig = {
@@ -39,29 +39,35 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [appDocuments, setAppDocuments] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
 
   const fetchData = async () => {
     try {
       // Try new stats endpoint first
       try {
         const statsRes = await api.get('/auth/admin/stats');
-        setStats(statsRes.data.stats);
-      } catch {}
+        setStats(statsRes.data);
+      } catch (err) {
+        console.error("Stats error", err);
+      }
       
       const res = await api.get('/applications/admin/all');
       const apps = res.data;
       setApplications(apps);
-      if (!stats) {
-        setStats({
+      
+      setStats(prevStats => {
+        if (prevStats) return prevStats;
+        return {
           totalApplications: apps.length,
-          pending: apps.filter(a => a.status === 'pending').length,
-          in_progress: apps.filter(a => a.status === 'in_progress').length,
-          approved: apps.filter(a => a.status === 'approved').length,
-          rejected: apps.filter(a => a.status === 'rejected').length,
-          totalCitizens: null,
-          activeSchemes: null,
-        });
-      }
+          pendingApplications: apps.filter(a => a.status === 'pending').length,
+          inProgressApplications: apps.filter(a => a.status === 'in_progress').length,
+          approvedApplications: apps.filter(a => a.status === 'approved').length,
+          rejectedApplications: apps.filter(a => a.status === 'rejected').length,
+          totalUsers: 0,
+          activeSchemes: 0,
+        };
+      });
     } catch {
       toast.error('Failed to load applications');
     } finally {
@@ -115,10 +121,20 @@ const AdminDashboard = () => {
     if (e.dataTransfer.files?.[0]) handleUploadResult(e.dataTransfer.files[0]);
   };
 
-  const openModal = (app) => {
+  const openModal = async (app) => {
     setSelectedApp(app);
     setStatusUpdate({ status: app.status, admin_note: app.admin_note || '' });
     setUploadProgress(0);
+    setAppDocuments([]);
+    setDocsLoading(true);
+    try {
+      const res = await api.get(`/applications/admin/${app.id}/documents`);
+      setAppDocuments(res.data.documents || []);
+    } catch {
+      toast.error('Failed to load applicant documents');
+    } finally {
+      setDocsLoading(false);
+    }
   };
 
   const filtered = applications
@@ -147,10 +163,10 @@ const AdminDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Total Applications" value={stats?.totalApplications} icon={FileText} bgClass="bg-primary" />
-        <StatCard label="Pending" value={stats?.pending} icon={Clock} bgClass="bg-amber-500" />
-        <StatCard label="Approved" value={stats?.approved} icon={CheckCircle} bgClass="bg-emerald-500" />
-        <StatCard label="Rejected" value={stats?.rejected} icon={XCircle} bgClass="bg-red-500" />
+        <StatCard label="Total Applications" value={stats?.totalApplications ?? 0} icon={FileText} bgClass="bg-primary" />
+        <StatCard label="Pending" value={stats?.pendingApplications ?? 0} icon={Clock} bgClass="bg-amber-500" />
+        <StatCard label="Approved" value={stats?.approvedApplications ?? 0} icon={CheckCircle} bgClass="bg-emerald-500" />
+        <StatCard label="Rejected" value={stats?.rejectedApplications ?? 0} icon={XCircle} bgClass="bg-red-500" />
       </div>
 
       {/* Secondary Stats */}
@@ -160,7 +176,7 @@ const AdminDashboard = () => {
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-gray-900">{stats?.in_progress ?? '--'}</div>
+            <div className="text-xl font-extrabold text-gray-900">{stats?.inProgressApplications ?? 0}</div>
             <div className="text-xs text-gray-500 font-medium">In Progress</div>
           </div>
         </div>
@@ -169,8 +185,8 @@ const AdminDashboard = () => {
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-gray-900">{stats?.totalCitizens ?? '--'}</div>
-            <div className="text-xs text-gray-500 font-medium">Citizens</div>
+            <div className="text-xl font-extrabold text-gray-900">{stats?.totalUsers ?? 0}</div>
+            <div className="text-xs text-gray-500 font-medium">Total Users</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
@@ -178,7 +194,7 @@ const AdminDashboard = () => {
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-gray-900">{stats?.activeSchemes ?? '--'}</div>
+            <div className="text-xl font-extrabold text-gray-900">{stats?.activeSchemes ?? 0}</div>
             <div className="text-xs text-gray-500 font-medium">Active Schemes</div>
           </div>
         </div>
@@ -281,6 +297,108 @@ const AdminDashboard = () => {
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-sm">
                 <p className="font-semibold text-gray-700 mb-1">{selectedApp.citizen_name}</p>
                 <p className="text-gray-500 text-xs">{selectedApp.citizen_email}</p>
+                {selectedApp.citizen_phone && (
+                  <p className="text-gray-500 text-xs mt-0.5">{selectedApp.citizen_phone}</p>
+                )}
+              </div>
+
+              {/* Submitted Documents */}
+              <div className="border border-gray-100 rounded-xl overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+                  <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    Submitted Documents
+                    {!docsLoading && (
+                      <span className="text-xs font-normal text-gray-400">({appDocuments.length})</span>
+                    )}
+                  </h3>
+                </div>
+
+                {docsLoading ? (
+                  <div className="p-4 space-y-3">
+                    {[1, 2].map(i => (
+                      <div key={i} className="h-14 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : appDocuments.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <FileText className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                    <p className="text-gray-400 text-xs">No documents linked to this application.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {appDocuments.map(doc => {
+                      const ext = doc.file_name?.split('.').pop()?.toLowerCase();
+                      const isPdf = ext === 'pdf';
+                      const isImage = ['jpg','jpeg','png','gif','webp'].includes(ext);
+                      const IconComp = isPdf ? FileText : isImage ? Image : File;
+                      const iconBg = isPdf ? 'bg-red-50 text-red-500' : isImage ? 'bg-purple-50 text-purple-500' : 'bg-blue-50 text-blue-500';
+
+                      const fileUrl = doc.file_url?.startsWith('http')
+                        ? doc.file_url
+                        : `http://localhost:5000${doc.file_url}`;
+
+                      const formatSize = (bytes) => {
+                        if (!bytes || bytes === 0) return null;
+                        const k = 1024;
+                        const sizes = ['B', 'KB', 'MB', 'GB'];
+                        const i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                      };
+
+                      return (
+                        <div key={doc.id} className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50/60 transition-colors">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+                            <IconComp className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate" title={doc.file_name}>
+                              {doc.doc_type}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className="text-xs text-gray-400 truncate" title={doc.file_name}>
+                                {doc.file_name}
+                              </span>
+                              {doc.file_size && (
+                                <span className="text-xs text-gray-300">·</span>
+                              )}
+                              {doc.file_size && (
+                                <span className="text-xs text-gray-400">{formatSize(doc.file_size)}</span>
+                              )}
+                              {doc.uploaded_at && (
+                                <>
+                                  <span className="text-xs text-gray-300">·</span>
+                                  <span className="text-xs text-gray-400">
+                                    {new Date(doc.uploaded_at).toLocaleDateString('en-IN')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <a
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary-50 hover:bg-primary-100 px-2.5 py-1.5 rounded-lg transition-colors"
+                              title="View document"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> View
+                            </a>
+                            <a
+                              href={fileUrl}
+                              download={doc.file_name}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition-colors"
+                              title="Download document"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Download
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Status */}

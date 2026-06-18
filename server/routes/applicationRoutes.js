@@ -9,7 +9,8 @@ const {
     getAllApplications,
     updateApplicationStatus,
     uploadResult,
-    downloadResult
+    downloadResult,
+    getApplicationDocuments
 } = require('../controllers/applicationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
@@ -43,6 +44,13 @@ router.patch(
     roleMiddleware('admin'),
     upload.single('file'),
     uploadResult
+);
+
+router.get(
+    '/admin/:id/documents',
+    authMiddleware,
+    roleMiddleware('admin'),
+    getApplicationDocuments
 );
 
 

@@ -1,11 +1,11 @@
 const db        = require('../config/db');
 const path      = require('path');
 const fs        = require('fs');
+const cloudinary = require('../config/cloudinary');
 const sendEmail = require('../utils/sendEmail');
 const {
     applicationSubmittedEmail,
     applicationInProgressEmail,
-    resultReadyEmail,
     applicationRejectedEmail
 } = require('../utils/emailTemplates');
 
@@ -33,10 +33,10 @@ const submitApplication = async (req, res) => {
     ? scheme.required_docs
   : JSON.parse(scheme.required_docs); // e.g. ["Aadhaar Card", "Income Certificate"]
 
-    // 2. check user hasn't already applied
+    // 2. check user hasn't already applied with a non-rejected status
     const [existing] = await db.query(
-        'SELECT id FROM applications WHERE user_id = ? AND scheme_id = ?',
-        [req.user.id, scheme_id]
+        'SELECT id FROM applications WHERE user_id = ? AND scheme_id = ? AND status != ?',
+        [req.user.id, scheme_id, 'rejected']
     );
 
     if (existing.length > 0) {
@@ -251,7 +251,16 @@ const uploadResult = async (req, res) => {
     }
 
     const app       = rows[0];
-    const resultUrl = `/uploads/${req.file.filename}`;
+    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'smart-setu/results',
+        resource_type: 'auto'
+    });
+
+    fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Failed to delete local file:', err);
+    });
+
+    const resultUrl = cloudinaryResult.secure_url;
 
     await db.query(
         `UPDATE applications
@@ -260,12 +269,7 @@ const uploadResult = async (req, res) => {
         [resultUrl, req.user.id, req.params.id]
     );
 
-    // notify citizen
-    sendEmail(
-        app.citizen_email,
-        'Your Document is Ready - Smart Setu',
-        resultReadyEmail(app.citizen_name, app.scheme_title, app.id)
-    ).catch(err => console.error('Email failed:', err));
+    // Email notification removed for result delivery
 
     return res.status(200).json({
         message: 'Result uploaded and application approved',
@@ -314,6 +318,39 @@ const downloadResult = async (req, res) => {
     }
 };
 
+// ── GET /api/admin/applications/:id/documents — admin fetches applicant docs ──
+const getApplicationDocuments = async (req, res) => {
+    try {
+    const applicationId = req.params.id;
+
+    // verify application exists
+    const [apps] = await db.query(
+        'SELECT id, user_id FROM applications WHERE id = ?',
+        [applicationId]
+    );
+
+    if (apps.length === 0) {
+        return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // fetch all linked documents
+    const [docs] = await db.query(
+        `SELECT d.id, d.doc_type, d.file_name, d.file_url, d.file_size, d.uploaded_at
+         FROM application_documents ad
+         JOIN documents d ON ad.document_id = d.id
+         WHERE ad.application_id = ?
+         ORDER BY d.uploaded_at DESC`,
+        [applicationId]
+    );
+
+    return res.status(200).json({ documents: docs });
+
+    } catch (err) {
+    console.error('Get application documents error:', err.message);
+    return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     submitApplication,
     getUserApplications,
@@ -321,5 +358,6 @@ module.exports = {
     getAllApplications,
     updateApplicationStatus,
     uploadResult,
-    downloadResult
+    downloadResult,
+    getApplicationDocuments
 };

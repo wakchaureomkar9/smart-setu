@@ -1,6 +1,7 @@
 const db         = require('../config/db');
 const path       = require('path');
 const fs         = require('fs');
+const cloudinary = require('../config/cloudinary');
 const sendEmail  = require('../utils/sendEmail');
 const { documentUploadedEmail } = require('../utils/emailTemplates');
 
@@ -16,7 +17,16 @@ const uploadDocument = async (req, res) => {
         return res.status(400).json({ message: 'Document type is required' });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'smart-setu/documents',
+        resource_type: 'auto'
+    });
+
+    fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Failed to delete local file:', err);
+    });
+
+    const fileUrl = cloudinaryResult.secure_url;
 
     await db.query(
         `INSERT INTO documents (user_id, doc_type, file_name, file_url, file_size)

@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const schemeRoutes = require('./routes/schemeRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/schemes', schemeRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/admin/reports', reportRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Setu API running' });
