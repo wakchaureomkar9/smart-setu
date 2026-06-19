@@ -2,7 +2,7 @@ const multer = require('multer');
 const path   = require('path');
 const db     = require('../config/db');
 
-const MAX_FILE_SIZE  = 10 * 1024 * 1024;        // 10 MB per file
+const MAX_FILE_SIZE  = 5 * 1024 * 1024;        // 5 MB per file
 const MAX_USER_QUOTA = 100 * 1024 * 1024;        // 100 MB per user
 
 const fs = require('fs');
