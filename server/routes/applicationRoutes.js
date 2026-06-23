@@ -20,6 +20,7 @@ const roleMiddleware = require('../middleware/roleMiddleware');
 
 const { upload } = require('../middleware/uploadMiddleware');
 const { validateApplication } = require('../middleware/validationMiddleware');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 
 // ─────────────────────────────────────────
 // ADMIN ROUTES
@@ -43,6 +44,7 @@ router.patch(
     '/:id/result',
     authMiddleware,
     roleMiddleware('admin'),
+    uploadLimiter,
     upload.single('file'),
     uploadResult
 );
