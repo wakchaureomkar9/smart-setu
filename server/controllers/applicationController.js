@@ -305,13 +305,7 @@ const downloadResult = async (req, res) => {
             return res.status(404).json({ message: 'Result document not found' });
         }
 
-        const filePath = path.join(__dirname, '..', app.result_file_url);
-
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ message: 'File is missing on server' });
-        }
-
-        return res.download(filePath, `Application_${app.id}_Result${path.extname(filePath)}`);
+        return res.redirect(app.result_file_url);
     } catch (err) {
         console.error('Download result error:', err.message);
         return res.status(500).json({ message: 'Server error' });
