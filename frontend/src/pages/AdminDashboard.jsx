@@ -146,6 +146,15 @@ const AdminDashboard = () => {
       String(a.id).includes(searchTerm)
     );
 
+  const handleViewDocument = async (docId) => {
+    try {
+      const response = await api.get(`/documents/${docId}/view`);
+      window.open(response.data.url, '_blank');
+    } catch (err) {
+      console.error('Failed to get document view URL:', err);
+    }
+  };
+
   return (
     <div className="space-y-7 animate-fade-in-up">
       {/* Header */}
@@ -334,10 +343,6 @@ const AdminDashboard = () => {
                       const IconComp = isPdf ? FileText : isImage ? Image : File;
                       const iconBg = isPdf ? 'bg-red-50 text-red-500' : isImage ? 'bg-purple-50 text-purple-500' : 'bg-blue-50 text-blue-500';
 
-                      const fileUrl = doc.file_url?.startsWith('http')
-                        ? doc.file_url
-                        : `http://localhost:5000${doc.file_url}`;
-
                       const formatSize = (bytes) => {
                         if (!bytes || bytes === 0) return null;
                         const k = 1024;
@@ -376,23 +381,20 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <a
-                              href={fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => handleViewDocument(doc.id)}
                               className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary-50 hover:bg-primary-100 px-2.5 py-1.5 rounded-lg transition-colors"
                               title="View document"
                             >
                               <Eye className="w-3.5 h-3.5" /> View
-                            </a>
-                            <a
-                              href={fileUrl}
-                              download={doc.file_name}
+                            </button>
+                            <button
+                              onClick={() => handleViewDocument(doc.id)}
                               className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition-colors"
                               title="Download document"
                             >
                               <Download className="w-3.5 h-3.5" /> Download
-                            </a>
+                            </button>
                           </div>
                         </div>
                       );

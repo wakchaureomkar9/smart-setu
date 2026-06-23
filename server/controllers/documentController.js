@@ -6,6 +6,7 @@ const cloudinary = require('../config/cloudinary');
 const Tesseract  = require('tesseract.js');
 const sendEmail  = require('../utils/sendEmail');
 const { documentUploadedEmail } = require('../utils/emailTemplates');
+const getSignedFileUrl = require('../utils/getSignedUrl');
 
 // POST /api/documents/upload
 const uploadDocument = async (req, res) => {
@@ -21,7 +22,8 @@ const uploadDocument = async (req, res) => {
 
     const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
         folder: 'smart-setu/documents',
-        resource_type: 'auto'
+        resource_type: 'auto',
+        type: 'authenticated'
     });
 
     // Step A — OCR extraction:
@@ -86,9 +88,9 @@ const uploadDocument = async (req, res) => {
     const fileUrl = cloudinaryResult.secure_url;
 
     await db.query(
-        `INSERT INTO documents (user_id, doc_type, file_name, file_url, file_size)
-        VALUES (?, ?, ?, ?, ?)`,
-        [req.user.id, doc_type, req.file.originalname, fileUrl, req.file.size]
+        `INSERT INTO documents (user_id, doc_type, file_name, file_url, file_size, cloudinary_public_id)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [req.user.id, doc_type, req.file.originalname, fileUrl, req.file.size, cloudinaryResult.public_id]
     );
 
     // send email (non-blocking)
@@ -157,4 +159,26 @@ const deleteDocument = async (req, res) => {
     }
 };
 
-module.exports = { uploadDocument, getDocuments, deleteDocument };
+const viewDocument = async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM documents WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Document not found' });
+        }
+
+        const doc = rows[0];
+
+        if (doc.user_id !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Not authorized to view this document' });
+        }
+
+        const signedUrl = getSignedFileUrl(doc.cloudinary_public_id, doc.file_name);
+        return res.status(200).json({ url: signedUrl });
+
+    } catch (err) {
+        console.error('View document error:', err.message);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = { uploadDocument, getDocuments, deleteDocument, viewDocument };

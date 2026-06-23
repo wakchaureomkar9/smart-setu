@@ -3,6 +3,7 @@ const path      = require('path');
 const fs        = require('fs');
 const cloudinary = require('../config/cloudinary');
 const sendEmail = require('../utils/sendEmail');
+const getSignedFileUrl = require('../utils/getSignedUrl');
 const {
     applicationSubmittedEmail,
     applicationInProgressEmail,
@@ -253,7 +254,8 @@ const uploadResult = async (req, res) => {
     const app       = rows[0];
     const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
         folder: 'smart-setu/results',
-        resource_type: 'auto'
+        resource_type: 'auto',
+        type: 'authenticated'
     });
 
     fs.unlink(req.file.path, (err) => {
@@ -264,9 +266,9 @@ const uploadResult = async (req, res) => {
 
     await db.query(
         `UPDATE applications
-        SET result_file_url = ?, status = 'approved', processed_by = ?
+        SET result_file_url = ?, status = 'approved', processed_by = ?, result_cloudinary_public_id = ?
         WHERE id = ?`,
-        [resultUrl, req.user.id, req.params.id]
+        [resultUrl, req.user.id, cloudinaryResult.public_id, req.params.id]
     );
 
     // Email notification removed for result delivery
@@ -345,6 +347,34 @@ const getApplicationDocuments = async (req, res) => {
     }
 };
 
+const viewResult = async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM applications WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        const app = rows[0];
+
+        if (req.user.role === 'citizen' && app.user_id !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to view this result' });
+        }
+
+        if (!app.result_cloudinary_public_id) {
+            return res.status(404).json({ message: 'Result document not found' });
+        }
+
+        // Derive a filename-like string from the public_id to determine file extension for the signed URL helper
+        const fileNameForExtension = app.result_file_url || 'result.pdf';
+        const signedUrl = getSignedFileUrl(app.result_cloudinary_public_id, fileNameForExtension);
+        return res.status(200).json({ url: signedUrl });
+
+    } catch (err) {
+        console.error('View result error:', err.message);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     submitApplication,
     getUserApplications,
@@ -353,5 +383,6 @@ module.exports = {
     updateApplicationStatus,
     uploadResult,
     downloadResult,
-    getApplicationDocuments
+    getApplicationDocuments,
+    viewResult
 };

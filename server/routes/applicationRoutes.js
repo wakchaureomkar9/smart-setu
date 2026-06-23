@@ -10,7 +10,8 @@ const {
     updateApplicationStatus,
     uploadResult,
     downloadResult,
-    getApplicationDocuments
+    getApplicationDocuments,
+    viewResult
 } = require('../controllers/applicationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
@@ -81,6 +82,12 @@ router.get(
     '/:id/download',
     authMiddleware,
     downloadResult
+);
+
+router.get(
+    '/:id/view-result',
+    authMiddleware,
+    viewResult
 );
 
 

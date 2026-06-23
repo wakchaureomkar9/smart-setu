@@ -131,6 +131,15 @@ const DocumentVault = () => {
     }
   };
 
+  const handleViewDocument = async (docId) => {
+    try {
+      const response = await api.get(`/documents/${docId}/view`);
+      window.open(response.data.url, '_blank');
+    } catch (err) {
+      console.error('Failed to get document view URL:', err);
+    }
+  };
+
   return (
     <div className="space-y-7 animate-fade-in-up">
       {/* Header */}
@@ -261,15 +270,13 @@ const DocumentVault = () => {
                   </div>
 
                   <div className="flex gap-2 pt-3 border-t border-gray-50">
-                    <a
-                      href={`http://localhost:5000${doc.file_url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => handleViewDocument(doc.id)}
                       className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-primary bg-primary-50 hover:bg-primary-100 px-3 py-2 rounded-xl transition-colors"
                       title="Download"
                     >
                       <Download className="w-3.5 h-3.5" /> Download
-                    </a>
+                    </button>
                     <button
                       onClick={() => setDeleteConfirm(doc)}
                       className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition-colors"
