@@ -34,10 +34,30 @@ const applicationRejectedEmail = (name, schemeTitle, applicationId, adminNote) =
   `;
 };
 
+const otpVerificationEmail = (name, otp) => {
+  return `
+    <h1>Verify Your Email</h1>
+    <p>Hello ${name}, your OTP for email verification is:</p>
+    <h2>${otp}</h2>
+    <p>This code expires in 5 minutes.</p>
+  `;
+};
+
+const passwordResetOtpEmail = (name, otp) => {
+  return `
+    <h1>Password Reset Request</h1>
+    <p>Hello ${name}, your OTP for password reset is:</p>
+    <h2>${otp}</h2>
+    <p>This code expires in 5 minutes. If you didn't request this, please ignore this email.</p>
+  `;
+};
+
 module.exports = {
   welcomeEmail,
   documentUploadedEmail,
   applicationSubmittedEmail,
   applicationInProgressEmail,
   applicationRejectedEmail,
+  otpVerificationEmail,
+  passwordResetOtpEmail,
 };

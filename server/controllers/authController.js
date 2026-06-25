@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const db     = require('../config/db');
 const sendEmail       = require('../utils/sendEmail');
-const { welcomeEmail } = require('../utils/emailTemplates');
+const { welcomeEmail, otpVerificationEmail, passwordResetOtpEmail } = require('../utils/emailTemplates');
 const asyncHandler = require('express-async-handler');
 
 // ── REGISTER ────────────────────────────────────────────
@@ -22,17 +22,32 @@ const register = asyncHandler(async (req, res) => {
 
   const [result] = await db.query(
     `INSERT INTO users (name, email, phone, address, password, role, is_verified)
-    VALUES (?, ?, ?, ?, ?, 'citizen', TRUE)`,
+    VALUES (?, ?, ?, ?, ?, 'citizen', FALSE)`,
     [name, email, phone || null, address || null, hashedPassword]
   );
+
+  const userId = result.insertId;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiry = new Date(Date.now() + 5 * 60 * 1000);
+
+  await db.query(
+    `UPDATE users 
+     SET verification_token = ?, verification_token_expiry = ? 
+     WHERE id = ?`,
+    [otp, expiry, userId]
+  );
+
+  sendEmail(email, 'Verify Your Email - Smart Setu', otpVerificationEmail(name, otp)).catch(err => {
+      console.error('OTP email failed:', err);
+  });
 
   sendEmail(email, 'Welcome to Smart Setu Portal', welcomeEmail(name)).catch(err => {
       console.error('Welcome email failed:', err);
   });
 
   return res.status(201).json({
-    message: 'Registration successful',
-    userId: result.insertId
+    message: 'Registration successful. Please verify your email with the OTP sent to your email address.',
+    userId: userId
   });
 });
 
@@ -56,6 +71,10 @@ const login = asyncHandler(async (req, res) => {
     const error = new Error('Invalid email or password');
     error.statusCode = 401;
     throw error;
+  }
+
+  if (!user.is_verified) {
+    return res.status(403).json({ message: 'Please verify your email before logging in' });
   }
 
   const token = jwt.sign(
@@ -226,4 +245,115 @@ const getAllUsers = asyncHandler(async (req, res) => {
   return res.status(200).json(rows);
 });
 
-module.exports = { register, login, getProfile, updateProfile, changePassword, getCitizenDashboardStats, getAdminDashboardStats, getAllUsers };
+// ── VERIFY OTP ──────────────────────────────────────────
+const verifyOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  const [rows] = await db.query(
+    'SELECT * FROM users WHERE email = ?', [email]
+  );
+  if (rows.length === 0) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const user = rows[0];
+
+  if (user.is_verified) {
+    return res.status(400).json({ message: 'Already verified' });
+  }
+
+  const now = new Date();
+  if (user.verification_token !== otp || !user.verification_token_expiry || new Date(user.verification_token_expiry) <= now) {
+    return res.status(400).json({ message: 'Invalid or expired OTP' });
+  }
+
+  await db.query(
+    `UPDATE users 
+     SET is_verified = TRUE, verification_token = NULL, verification_token_expiry = NULL 
+     WHERE id = ?`,
+    [user.id]
+  );
+
+  return res.status(200).json({ message: 'Email verification successful' });
+});
+
+// ── FORGOT PASSWORD ─────────────────────────────────────
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const [rows] = await db.query(
+    'SELECT * FROM users WHERE email = ?', [email]
+  );
+  if (rows.length === 0) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const user = rows[0];
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiry = new Date(Date.now() + 5 * 60 * 1000);
+
+  await db.query(
+    `UPDATE users 
+     SET reset_token = ?, reset_token_expiry = ? 
+     WHERE id = ?`,
+    [otp, expiry, user.id]
+  );
+
+  sendEmail(email, 'Password Reset OTP - Smart Setu', passwordResetOtpEmail(user.name, otp)).catch(err => {
+      console.error('Password reset OTP email failed:', err);
+  });
+
+  return res.status(200).json({ message: 'Password reset OTP sent successfully' });
+});
+
+// ── RESET PASSWORD ──────────────────────────────────────
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, new_password } = req.body;
+
+  if (!email || !otp || !new_password) {
+    return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+  }
+
+  const [rows] = await db.query(
+    'SELECT * FROM users WHERE email = ?', [email]
+  );
+  if (rows.length === 0) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const user = rows[0];
+  const now = new Date();
+
+  if (user.reset_token !== otp || !user.reset_token_expiry || new Date(user.reset_token_expiry) <= now) {
+    return res.status(400).json({ message: 'Invalid or expired OTP' });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ message: 'New password must be at least 6 characters' });
+  }
+
+  const hashedPassword = await bcrypt.hash(new_password, 10);
+
+  await db.query(
+    `UPDATE users 
+     SET password = ?, reset_token = NULL, reset_token_expiry = NULL 
+     WHERE id = ?`,
+    [hashedPassword, user.id]
+  );
+
+  return res.status(200).json({ message: 'Password reset successful' });
+});
+
+module.exports = {
+  register,
+  login,
+  getProfile,
+  updateProfile,
+  changePassword,
+  getCitizenDashboardStats,
+  getAdminDashboardStats,
+  getAllUsers,
+  verifyOtp,
+  forgotPassword,
+  resetPassword
+};
