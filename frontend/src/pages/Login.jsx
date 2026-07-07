@@ -86,7 +86,7 @@ const Login = () => {
             <div>
               <div className="flex justify-between mb-1.5">
                 <label className="label-text" htmlFor="password">Password</label>
-                <Link to="#" className="text-xs text-accent hover:underline font-medium">Forgot password?</Link>
+                <Link to="/forgot-password" className="text-xs text-accent hover:underline font-medium">Forgot password?</Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
