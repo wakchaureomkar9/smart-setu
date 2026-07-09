@@ -75,14 +75,24 @@ app.get('/', (req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
+  // Always log the full error server-side for debugging
   console.error('Unhandled Error:', err);
+
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  
+
+  // Only expose the actual error message if it's a known, intentional error
+  // (one we threw ourselves with a statusCode). For unexpected errors (500s),
+  // send a generic message to avoid leaking internal details to clients.
+  const isOperationalError = !!err.statusCode;
+  const message = isOperationalError
+    ? err.message
+    : 'Something went wrong. Please try again later.';
+
   res.status(statusCode).json({
     success: false,
-    message: message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    message,
+    // Only expose stack trace in development, never in production
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
